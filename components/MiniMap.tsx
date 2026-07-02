@@ -24,8 +24,9 @@ function buildStaticMapUrl(origins: MapOrigin[], destination: { name: string; la
   const zoom = span < 0.02 ? 14 : span < 0.06 ? 13 : span < 0.15 ? 12 : 11
 
   const params = new URLSearchParams({ center, zoom: String(zoom) })
-  // Destination: blue filled circle
-  params.append('m', `color:0x0066CC|size:mid|label:★|${destination.latLng.lat},${destination.latLng.lng}`)
+  // Destination: blue marker. No label — Google Static Maps only accepts
+  // single uppercase alphanumerics and silently 400s on anything else (★ did).
+  params.append('m', `color:0x0066CC|size:mid|${destination.latLng.lat},${destination.latLng.lng}`)
   // Origins: each person's own colour
   for (const o of origins) {
     const hex = (o.color || '#6E6E73').replace('#', '0x')

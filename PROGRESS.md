@@ -68,3 +68,11 @@ The journey is now the group-chat argument itself, three focused moments (see D2
 - New: `lib/people.ts`, `CrewStep.tsx`, `PlacesStep.tsx`, `VerdictView.tsx`, `PlaceField.tsx`. Removed: `PersonRow.tsx`, `ResultView.tsx`. `?s=` share encoding unchanged — old links still work.
 - Fixed pre-existing bug: keyless `/api/staticmap` 500'd on every MiniMap probe (Response constructor rejects cached 204); now `force-dynamic` + 404, SVG fallback intact (D21).
 - Verified end-to-end this session with Playwright against a production build and live TfL: crew → places (Peckham Rye / Angel / Clapham Common) → verdict (London Bridge, max 27 min, gap 6), challenger tap (Southwark — "The verdict stands"), crew memory on reload, shared-link open with add-yourself banner. `next build` green, First Load JS 95.9 kB.
+
+## Phase 10 follow-up — Google-path verification (2026-07-02)
+
+`GOOGLE_MAPS_API_KEY` confirmed live in Vercel Production (not in this container): prod `/api/places` returns Google Places autocomplete and prod `/api/venues` returns Google venues. Re-drove the new UI with Playwright routing `/api/places`, `/api/venues`, `/api/staticmap` through production — Google autocomplete (venue-level suggestions like "Peckham Levels, Rye Lane") and Google venues ("The Elephant and Castle — Pub, 1 min walk") render correctly in the new flow.
+
+**Finding: the static map has never worked on live.** Prod `/api/staticmap` returns 204 (no map) for every request — even minimal valid markers — so the live map has silently been the SVG fallback since it shipped. Places works with the same key, so this is API enablement, not the key itself. Two-part fix:
+- Shipped: removed `label:★` from the destination marker (Google Static Maps only accepts single uppercase alphanumeric labels and 400s otherwise — it would have kept failing even once enabled).
+- **Hand back to Andrew:** enable **"Maps Static API"** for the key in Google Cloud console (APIs & Services → Library). No code change needed after that.

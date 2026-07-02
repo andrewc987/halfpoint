@@ -146,7 +146,7 @@ export default function VerdictView({ result, colors, children }: VerdictViewPro
       list.push({ candidate, tag })
     }
     push(result.fairest, 'The verdict')
-    if (!result.agree) push(result.quickest, 'Quickest overall')
+    if (!result.agree) push(result.quickest, 'Quickest')
     for (const c of result.ranked) push(c)
     return list.slice(0, 5)
   }, [result])
