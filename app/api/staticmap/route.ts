@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Proxies Google Maps Static API so the key stays server-side.
-// Returns 204 (no content) when the key is absent — MiniMap falls back to SVG.
+// Returns 404 when the key is absent or Google fails — MiniMap falls back to
+// SVG. (404, not 204: Next's static optimisation re-wraps cached responses
+// through the Response constructor, which rejects null-body statuses.)
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY
-  if (!apiKey) return new NextResponse(null, { status: 204 })
+  if (!apiKey) return new NextResponse(null, { status: 404 })
 
   const p = request.nextUrl.searchParams
   const center = p.get('center') || '51.505,-0.127'
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return new NextResponse(null, { status: 204 })
+    if (!res.ok) return new NextResponse(null, { status: 404 })
     const buf = await res.arrayBuffer()
     return new NextResponse(buf, {
       headers: {
@@ -39,6 +43,6 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch {
-    return new NextResponse(null, { status: 204 })
+    return new NextResponse(null, { status: 404 })
   }
 }
