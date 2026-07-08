@@ -59,3 +59,20 @@ Diagnosed via the failures list on live: on 4-person runs, TfL hard-throttles Ve
 - **Add a free `TFL_APP_KEY`** (register at api-portal.tfl.gov.uk) to Vercel Production env. This is the one blocker: it lifts the anonymous per-IP rate limit that currently suppresses some legs/last-train lines on larger groups on live. Everything is wired; redeploy not even required beyond the env change.
 - `GOOGLE_MAPS_API_KEY` is not available in this execution container. Add it to the container env (or confirm it in Vercel Production env) to activate the Google provider. Tonight's build runs on TfL + postcodes.io (free, real journey times) behind the same provider interface — no fabricated times.
 - Vercel project rename off `uk-telco-intel-mvp` slug + domain/DNS — settings changes only Andrew can make.
+
+## Phase 10 — Full UX rebuild around the argument ✅ (2026-07-02, branch `claude/halfpoint-app-check-rx2jse`)
+
+The journey is now the group-chat argument itself, three focused moments (see D20):
+**Crew** (name chips with persistent per-person colours, on-device "Same crew as last time?" memory, first-visit how-it-works) → **Places** (one question per card, live "2 of 4 in" progress, Use my location) → **Verdict** (fairness receipt with per-person colour bars on one shared scale, tappable challenger candidates with biggest-loser deltas, colour-coded map, "Add yourself" banner on opened share links).
+
+- New: `lib/people.ts`, `CrewStep.tsx`, `PlacesStep.tsx`, `VerdictView.tsx`, `PlaceField.tsx`. Removed: `PersonRow.tsx`, `ResultView.tsx`. `?s=` share encoding unchanged — old links still work.
+- Fixed pre-existing bug: keyless `/api/staticmap` 500'd on every MiniMap probe (Response constructor rejects cached 204); now `force-dynamic` + 404, SVG fallback intact (D21).
+- Verified end-to-end this session with Playwright against a production build and live TfL: crew → places (Peckham Rye / Angel / Clapham Common) → verdict (London Bridge, max 27 min, gap 6), challenger tap (Southwark — "The verdict stands"), crew memory on reload, shared-link open with add-yourself banner. `next build` green, First Load JS 95.9 kB.
+
+## Phase 10 follow-up — Google-path verification (2026-07-02)
+
+`GOOGLE_MAPS_API_KEY` confirmed live in Vercel Production (not in this container): prod `/api/places` returns Google Places autocomplete and prod `/api/venues` returns Google venues. Re-drove the new UI with Playwright routing `/api/places`, `/api/venues`, `/api/staticmap` through production — Google autocomplete (venue-level suggestions like "Peckham Levels, Rye Lane") and Google venues ("The Elephant and Castle — Pub, 1 min walk") render correctly in the new flow.
+
+**Finding: the static map has never worked on live.** Prod `/api/staticmap` returns 204 (no map) for every request — even minimal valid markers — so the live map has silently been the SVG fallback since it shipped. Places works with the same key, so this is API enablement, not the key itself. Two-part fix:
+- Shipped: removed `label:★` from the destination marker (Google Static Maps only accepts single uppercase alphanumeric labels and 400s otherwise — it would have kept failing even once enabled).
+- **Hand back to Andrew:** enable **"Maps Static API"** for the key in Google Cloud console (APIs & Services → Library). No code change needed after that.

@@ -3,13 +3,19 @@
 import { useEffect, useState } from 'react'
 import { LatLng } from '@/lib/types'
 
+interface MapOrigin {
+  name: string
+  latLng: LatLng
+  color?: string
+}
+
 interface MiniMapProps {
-  origins: { name: string; latLng: LatLng }[]
+  origins: MapOrigin[]
   destination: { name: string; latLng: LatLng }
 }
 
 // Build the /api/staticmap URL for a Google Static Map with origin + destination markers
-function buildStaticMapUrl(origins: { name: string; latLng: LatLng }[], destination: { name: string; latLng: LatLng }) {
+function buildStaticMapUrl(origins: MapOrigin[], destination: { name: string; latLng: LatLng }) {
   const center = `${destination.latLng.lat},${destination.latLng.lng}`
   // Auto-fit zoom: find rough span
   const lats = [...origins.map((o) => o.latLng.lat), destination.latLng.lat]
@@ -18,11 +24,13 @@ function buildStaticMapUrl(origins: { name: string; latLng: LatLng }[], destinat
   const zoom = span < 0.02 ? 14 : span < 0.06 ? 13 : span < 0.15 ? 12 : 11
 
   const params = new URLSearchParams({ center, zoom: String(zoom) })
-  // Destination: blue filled circle
-  params.append('m', `color:0x0066CC|size:mid|label:★|${destination.latLng.lat},${destination.latLng.lng}`)
-  // Origins: grey dots
+  // Destination: blue marker. No label — Google Static Maps only accepts
+  // single uppercase alphanumerics and silently 400s on anything else (★ did).
+  params.append('m', `color:0x0066CC|size:mid|${destination.latLng.lat},${destination.latLng.lng}`)
+  // Origins: each person's own colour
   for (const o of origins) {
-    params.append('m', `color:0x6E6E73|size:small|${o.latLng.lat},${o.latLng.lng}`)
+    const hex = (o.color || '#6E6E73').replace('#', '0x')
+    params.append('m', `color:${hex}|size:small|${o.latLng.lat},${o.latLng.lng}`)
   }
   return `/api/staticmap?${params.toString()}`
 }
@@ -34,7 +42,7 @@ export default function MiniMap({ origins, destination }: MiniMapProps) {
   useEffect(() => {
     // Probe whether the static map proxy has a key
     fetch(staticMapUrl, { method: 'HEAD' })
-      .then((r) => setUseGoogleMap(r.ok && r.status !== 204))
+      .then((r) => setUseGoogleMap(r.ok))
       .catch(() => setUseGoogleMap(false))
   }, [staticMapUrl])
 
@@ -99,7 +107,7 @@ function SvgMiniMap({ origins, destination }: MiniMapProps) {
     if (collides(lx, ly) || ly < 10) ly = oy + 14
     if (collides(lx, ly)) ly = oy + 26
     placed.push({ x: lx, y: ly })
-    return { ox, oy, lx, ly, name: o.name }
+    return { ox, oy, lx, ly, name: o.name, color: o.color }
   })
 
   return (
@@ -116,7 +124,7 @@ function SvgMiniMap({ origins, destination }: MiniMapProps) {
       ))}
       {originLabels.map((o, i) => (
         <g key={`o-${i}`} className="map-fade" style={{ animationDelay: `${120 + i * 110}ms` }}>
-          <circle cx={o.ox} cy={o.oy} r={4.5} fill="#6E6E73" />
+          <circle cx={o.ox} cy={o.oy} r={4.5} fill={o.color || '#6E6E73'} />
           <circle cx={o.ox} cy={o.oy} r={4.5} fill="none" stroke="#FFFFFF" strokeWidth={1.25} />
           <text x={o.lx} y={o.ly} textAnchor="middle" fontSize={9.5} fill="#6E6E73"
             fontFamily="-apple-system, system-ui, sans-serif">{o.name}</text>
