@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HALF·POINT — The fairest place to meet in London',
     description: 'Find the fairest place to meet. Then blame the algorithm.',
-    images: ['/og-image.png'],
+    // /public/og-image.png was a 12-byte text placeholder; the dynamic OG
+    // route renders a real branded card even with no params.
+    images: [{ url: '/api/og', width: 1200, height: 630 }],
   },
 }
 
