@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Without this, a build where GOOGLE_MAPS_API_KEY is absent hits the early
+// `return 204` before touching `request`, so Next statically prerenders the
+// route and freezes that empty response — which then serves as a 404/500 in
+// production even when the key exists at runtime.
+export const dynamic = 'force-dynamic'
+
 // Proxies Google Maps Static API so the key stays server-side.
 // Returns 204 (no content) when the key is absent — MiniMap falls back to SVG.
 export async function GET(request: NextRequest) {

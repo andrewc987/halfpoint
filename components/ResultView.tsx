@@ -15,10 +15,12 @@ function JourneyLeg({
   leg,
   index,
   firstReveal,
+  lastTrainUnverified,
 }: {
   leg: ScoredCandidate['legs'][number]
   index: number
   firstReveal: boolean
+  lastTrainUnverified?: boolean
 }) {
   return (
     <div
@@ -34,6 +36,12 @@ function JourneyLeg({
               <p className="text-sm text-accent font-medium mt-1.5">
                 Makes the {leg.lastTrain.trainTime} to {leg.lastTrain.destination} from {leg.lastTrain.terminal} —
                 leave by {leg.lastTrain.leaveBy}.
+              </p>
+            )}
+            {!leg.lastTrain && lastTrainUnverified && (
+              <p className="text-sm text-warning font-medium mt-1.5">
+                Couldn&apos;t confirm {leg.personName}&apos;s last train home tonight — check it
+                before staying late.
               </p>
             )}
           </>
@@ -113,6 +121,19 @@ export default function ResultView({ result, children }: ResultViewProps) {
   const [firstReveal, setFirstReveal] = useState(true)
   const winner = mode === 'fairest' ? result.fairest : result.quickest
 
+  // The engine reports degraded lookups in `failures` but the UI never showed
+  // them — anyone whose last-train check silently failed (TfL rate limiting is
+  // the usual culprit) just lost their "leave by" line with no warning.
+  const lastTrainUnverified = new Set(
+    (result.failures || [])
+      .filter(
+        (f) =>
+          (f.candidate.startsWith(`${winner.name} →`) && f.candidate.endsWith('(terminal leg)')) ||
+          f.candidate.endsWith('(no last-train entry today)')
+      )
+      .map((f) => f.personName)
+  )
+
   useEffect(() => {
     setMode('fairest')
     setFirstReveal(true)
@@ -185,7 +206,13 @@ export default function ResultView({ result, children }: ResultViewProps) {
       <section>
         <div className="space-y-2.5">
           {winner.legs.map((leg, i) => (
-            <JourneyLeg key={`${mode}-${leg.personId}`} leg={leg} index={i} firstReveal={firstReveal} />
+            <JourneyLeg
+              key={`${mode}-${leg.personId}`}
+              leg={leg}
+              index={i}
+              firstReveal={firstReveal}
+              lastTrainUnverified={lastTrainUnverified.has(leg.personName)}
+            />
           ))}
         </div>
       </section>
