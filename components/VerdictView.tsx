@@ -18,12 +18,14 @@ function ReceiptRow({
   scaleMax,
   index,
   firstReveal,
+  lastTrainUnverified,
 }: {
   leg: ScoredCandidate['legs'][number]
   color: string
   scaleMax: number
   index: number
   firstReveal: boolean
+  lastTrainUnverified?: boolean
 }) {
   return (
     <div
@@ -57,6 +59,11 @@ function ReceiptRow({
             <p className="text-sm text-accent font-medium mt-1.5">
               Makes the {leg.lastTrain.trainTime} to {leg.lastTrain.destination} from {leg.lastTrain.terminal} — leave
               by {leg.lastTrain.leaveBy}.
+            </p>
+          )}
+          {!leg.lastTrain && lastTrainUnverified && (
+            <p className="text-sm text-warning font-medium mt-1.5">
+              Couldn&apos;t confirm {leg.personName}&apos;s last train home tonight — check it before staying late.
             </p>
           )}
         </>
@@ -162,6 +169,23 @@ export default function VerdictView({ result, colors, children }: VerdictViewPro
   const selected = candidates.find((c) => c.candidate.name === selectedName)?.candidate ?? result.fairest
   const isVerdict = selected.name === result.fairest.name
 
+  // The engine reports degraded lookups in `failures` but the UI never showed
+  // them — anyone whose last-train check silently failed (TfL rate limiting is
+  // the usual culprit) just lost their "leave by" line with no warning.
+  const lastTrainUnverified = useMemo(
+    () =>
+      new Set(
+        (result.failures || [])
+          .filter(
+            (f) =>
+              (f.candidate.startsWith(`${selected.name} →`) && f.candidate.endsWith('(terminal leg)')) ||
+              f.candidate.endsWith('(no last-train entry today)')
+          )
+          .map((f) => f.personName)
+      ),
+    [result, selected.name]
+  )
+
   // One scale across every candidate so bars stay comparable when the
   // sceptic taps between options.
   const scaleMax = Math.max(...candidates.map((c) => c.candidate.maxMinutes))
@@ -243,6 +267,7 @@ export default function VerdictView({ result, colors, children }: VerdictViewPro
               scaleMax={scaleMax}
               index={i}
               firstReveal={firstReveal}
+              lastTrainUnverified={lastTrainUnverified.has(leg.personName)}
             />
           ))}
         </div>
