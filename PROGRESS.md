@@ -1,3 +1,6 @@
+> Superseded by factory/STATE.md (read that first).
+> Kept for history and architecture notes.
+
 # PROGRESS
 
 Running log for the overnight rebuild (`tasks/halfpoint-overnight.md`).

@@ -41,6 +41,7 @@ First run: `npm install`, then `cp .env.local.example .env.local`.
 - Deploy target is Vercel (`vercel.json` sets `framework: nextjs`); `.replit` also present for Replit dev.
 - Tailwind theme is a bespoke Apple-style light palette (`tailwind.config.js`); OG image styling mirrors it.
 - Additional context lives in `README.md`, `DECISIONS.md`, `PROGRESS.md`, and `tasks/`.
+- Session handover lives in `factory/STATE.md` — read it first, update it last.
 
 ## Secrets
 <!-- secrets-house-rule -->
