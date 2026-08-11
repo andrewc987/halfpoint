@@ -41,8 +41,3 @@ First run: `npm install`, then `cp .env.local.example .env.local`.
 - Deploy target is Vercel (`vercel.json` sets `framework: nextjs`); `.replit` also present for Replit dev.
 - Tailwind theme is a bespoke Apple-style light palette (`tailwind.config.js`); OG image styling mirrors it.
 - Additional context lives in `README.md`, `DECISIONS.md`, `PROGRESS.md`, and `tasks/`.
-- Session handover lives in `factory/STATE.md` — read it first, update it last.
-
-## Secrets
-<!-- secrets-house-rule -->
-Follows the one house rule for secrets (see `~/.claude/CLAUDE.md`, full policy `/projects/hq/SECRETS.md`): never paste live keys into chat; add or rotate a key by putting it in the gitignored `/projects/.secrets.env` then saying "distribute my secrets"; app secrets → Vercel env, CI secrets → GitHub Actions secrets; one named key per project per provider; `.env.local` is a gitignored pull, `.env.example` (names only) is committed.
