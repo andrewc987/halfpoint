@@ -1,43 +1,38 @@
-# CLAUDE.md
+# HALF·POINT
 
-HALF·POINT — a group meetup optimiser that finds the fairest place in London for 2–8 people to meet, using real TfL journey times, then produces a shareable briefing with per-person routes and last-train warnings.
+A group meetup optimiser: the fairest place in London for 2–8 people to meet,
+using real TfL journey times, then a shareable briefing with per-person routes
+and last-train warnings.
 
-> Note: the directory is named `uk-telco-intel.mvp`, but the code (package name `halfpoint`) is a London meetup app, not a telco project. Documented from the actual code.
+Next.js 14 App Router + TypeScript + Tailwind. No DB, no auth. Handover:
+`factory/STATE.md`. Background in `DECISIONS.md`, `PROGRESS.md`, `tasks/`.
+
+> The directory is named `uk-telco-intel.mvp` and the package is `halfpoint`.
+> Same project — it is a London meetup app, not a telco one.
 
 ## Commands
 
-Package manager: **npm** (`package-lock.json`).
+```bash
+npm install && npm run dev    # http://localhost:3000
+cp .env.local.example .env.local
+npm run build
+npm run lint
+```
 
-- `npm run dev` — start the dev server (http://localhost:3000)
-- `npm run build` — production build
-- `npm run start` — serve the production build
-- `npm run lint` — Next.js ESLint
+## The rules that bite
 
-First run: `npm install`, then `cp .env.local.example .env.local`.
-
-## Architecture
-
-- **Framework:** Next.js 14 (App Router) + TypeScript + Tailwind CSS. React 18. No DB, no auth — all state is client-side or derived from external APIs at request time.
-- **`app/`** — routes. `layout.tsx` + `page.tsx` (server wrapper that emits per-result OG tags from a `?s=` share param and renders `HomeClient`). API routes under `app/api/`:
-  - `optimise` — POST; the main endpoint. Validates 2–8 people, resolves out-of-London home postcodes to a terminal, calls the engine. `maxDuration = 60`.
-  - `places` — GET autocomplete (proxies `lib/providers/geocode`).
-  - `geocode` — GET postcode → coords + London terminal lookup.
-  - `venues` — GET nearby venues (Google Places if keyed, else Overpass/OSM; failure = empty, never blocks recommendation).
-  - `staticmap` — proxies Google Static Maps so the key stays server-side; returns 204 when unkeyed (client falls back to SVG).
-  - `og` — edge runtime dynamic OG image (`next/og`) for shared results.
-- **`components/`** — client UI: `HomeClient` (main app), `PersonRow`, `ResultView`, `MiniMap`, `ShareButton`.
-- **`lib/`** — core logic:
-  - `engine.ts` — the fairness optimiser. Shortlists candidate stations near the group centroid, fetches a people×candidates TfL journey matrix (bounded concurrency), scores by "fairest" (min worst-case time, then spread, then total) vs "quickest" (min total), applies a last-train constraint via candidate→terminal legs, returns both picks + a diff sentence.
-  - `candidates.ts` — curated candidate meeting stations. `terminals.ts` — London rail terminals, last-train tables, postcode→terminal + borough lookups. `types.ts` — shared types.
-  - `providers/` — external API adapters. `tfl.ts` (TfL Unified API journey planner, with in-memory cache keyed by rounded coords + hour bucket), `geocode.ts` (Google Places v1 if keyed, else TfL StopPoint + postcodes.io), `types.ts`.
-- **Data flow:** user enters name / from / home per person → client geocodes via `/api/places` + `/api/geocode` → `/api/optimise` runs the engine against live TfL data → `ResultView` renders routes + last-train + venues; result is base64-encoded into a share URL that drives OG metadata.
-
-## Conventions & notes
-
-- **Env vars** (all optional; app works keyless — TfL and postcodes.io are free): `GOOGLE_MAPS_API_KEY` (Places autocomplete, Static Maps, venues), `TFL_APP_KEY` (raises TfL rate limits), `NEXT_PUBLIC_BASE_URL` (base for internal API calls, default `http://localhost:3000`). Never commit values; see `.env.local.example`.
-- Path alias `@/*` maps to repo root (`tsconfig.json`), so imports are `@/lib/...`, `@/components/...`.
-- TfL's anonymous per-IP rate limit is the main constraint on shared serverless egress — `engine.ts` bounds concurrency, caps the shortlist, and paces terminal-leg retries. Setting `TFL_APP_KEY` removes most of this.
-- Provider calls fail soft (return `{ ok: false }` / empty) — the recommendation degrades gracefully rather than erroring.
-- Deploy target is Vercel (`vercel.json` sets `framework: nextjs`); `.replit` also present for Replit dev.
-- Tailwind theme is a bespoke Apple-style light palette (`tailwind.config.js`); OG image styling mirrors it.
-- Additional context lives in `README.md`, `DECISIONS.md`, `PROGRESS.md`, and `tasks/`.
+- **It must work with no keys at all.** TfL and postcodes.io are free, so the
+  app is fully functional keyless. `GOOGLE_MAPS_API_KEY` (Places, Static Maps,
+  venues) and `TFL_APP_KEY` (higher rate limits) are enhancements only. Anything
+  new must degrade the same way.
+- **Provider calls fail soft** — return `{ ok: false }` or empty, never throw.
+  A venue lookup that fails must never block a recommendation.
+- **TfL's anonymous per-IP rate limit is the real constraint** on shared
+  serverless egress, not compute. `lib/engine.ts` bounds concurrency, caps the
+  shortlist and paces terminal-leg retries for that reason — don't widen any of
+  them without setting `TFL_APP_KEY`.
+- **The Google key stays server-side.** `/api/staticmap` proxies it and returns
+  204 when unkeyed, so the client falls back to an SVG map.
+- The fairness scoring ("fairest" = min worst-case time, then spread, then total;
+  vs "quickest" = min total) plus the last-train constraint is the product. It
+  lives in `lib/engine.ts`; candidates and terminals are curated data beside it.
