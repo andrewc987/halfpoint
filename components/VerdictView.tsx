@@ -178,10 +178,9 @@ export default function VerdictView({ result, colors, children }: VerdictViewPro
         (result.failures || [])
           .filter(
             (f) =>
-              (f.candidate.startsWith(`${selected.name} →`) && f.candidate.endsWith('(terminal leg)')) ||
-              f.candidate.endsWith('(no last-train entry today)')
+              (f.kind === 'terminal-leg' && f.candidate === selected.name) || f.kind === 'no-last-train-today'
           )
-          .map((f) => f.personName)
+          .map((f) => f.personId)
       ),
     [result, selected.name]
   )
@@ -267,7 +266,7 @@ export default function VerdictView({ result, colors, children }: VerdictViewPro
               scaleMax={scaleMax}
               index={i}
               firstReveal={firstReveal}
-              lastTrainUnverified={lastTrainUnverified.has(leg.personName)}
+              lastTrainUnverified={lastTrainUnverified.has(leg.personId)}
             />
           ))}
         </div>
