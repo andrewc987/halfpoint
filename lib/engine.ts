@@ -1,4 +1,4 @@
-import { LastTrainPlan, LatLng, OptimiseResponse, PersonLeg, ScoredCandidate, Terminal } from './types'
+import { Failure, LastTrainPlan, LatLng, OptimiseResponse, PersonLeg, ScoredCandidate, Terminal } from './types'
 import { CANDIDATE_STATIONS, CandidateStation } from './candidates'
 import { tflJourneys } from './providers/tfl'
 
@@ -6,7 +6,6 @@ export interface EnginePerson {
   id: string
   name: string
   origin: LatLng
-  homeLatLng?: LatLng
   terminal?: Terminal
 }
 
@@ -116,7 +115,7 @@ export async function optimise(
   })
 
   const scored: ScoredCandidate[] = []
-  const failures: { candidate: string; personName: string }[] = []
+  const failures: Failure[] = []
 
   for (const candidate of candidates) {
     const candidateLegs: PersonLeg[] = people.map((person) => {
@@ -130,7 +129,7 @@ export async function optimise(
           route: found.journey.route,
         }
       }
-      failures.push({ candidate: candidate.name, personName: person.name })
+      failures.push({ kind: 'journey-leg', candidate: candidate.name, personId: person.id, personName: person.name })
       return { personId: person.id, personName: person.name, ok: false }
     })
 
@@ -173,7 +172,7 @@ export async function optimise(
 
   for (const p of people) {
     if (p.terminal && !constrained.some((c) => c.person.id === p.id)) {
-      failures.push({ candidate: `${p.terminal.name} (no last-train entry today)`, personName: p.name })
+      failures.push({ kind: 'no-last-train-today', terminal: p.terminal.name, personId: p.id, personName: p.name })
     }
   }
 
@@ -199,7 +198,13 @@ export async function optimise(
         journey = await tflJourneys.journeyTime(candidate.latLng, c.terminal.latLng, departureTime)
       }
       if (!journey.ok) {
-        failures.push({ candidate: `${candidate.name} → ${c.terminal.name} (terminal leg)`, personName: c.person.name })
+        failures.push({
+          kind: 'terminal-leg',
+          candidate: candidate.name,
+          terminal: c.terminal.name,
+          personId: c.person.id,
+          personName: c.person.name,
+        })
       }
       return { candidate, c, journey }
     })

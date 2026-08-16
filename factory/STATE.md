@@ -9,3 +9,9 @@ notes: Live at https://uk-telco-intel-mvp.vercel.app — the Vercel project stil
   Phase-10 UX rebuild (Crew → Places → Verdict) shipped and live-verified 2026-07-02; GOOGLE_MAPS_API_KEY confirmed in Vercel Production.
   Hard rule: never invent a journey time — failed legs surface honestly.
   Build history and live-verification evidence: PROGRESS.md (superseded as the handover, kept for history). Decision records stay authoritative in DECISIONS.md (D1–D21).
+  2026-08-16: Simplification audit HP.1 + HP.2 on branch simplify/failures-union.
+  Failures are now a discriminated union (kind: journey-leg | no-last-train-today
+  | terminal-leg); VerdictView switches on kind and matches legs by personId, no
+  more string parsing. Dead fields deleted: Person.homePostcode,
+  Person.londonTerminal, EnginePerson.homeLatLng. Person.homeLatLng is live and
+  untouched. next build + tsc --noEmit clean. PR open, not merged.

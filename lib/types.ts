@@ -10,8 +10,6 @@ export interface Person {
   fromLatLng: LatLng | null
   homeLocation: string
   homeLatLng: LatLng | null
-  homePostcode: string
-  londonTerminal?: Terminal
 }
 
 export interface Terminal {
@@ -51,6 +49,26 @@ export interface ScoredCandidate {
   legs: PersonLeg[]
 }
 
+// A degraded lookup the engine reports honestly instead of inventing a
+// journey. Discriminated by `kind` — consumers switch on it, never parse
+// a formatted string.
+export type Failure =
+  | { kind: 'journey-leg'; candidate: string; personId: string; personName: string }
+  | { kind: 'no-last-train-today'; terminal: string; personId: string; personName: string }
+  | { kind: 'terminal-leg'; candidate: string; terminal: string; personId: string; personName: string }
+
+// Human-readable form of a failure, for logs or any surface that shows one.
+export function failureLabel(f: Failure): string {
+  switch (f.kind) {
+    case 'journey-leg':
+      return f.candidate
+    case 'no-last-train-today':
+      return `${f.terminal} (no last-train entry today)`
+    case 'terminal-leg':
+      return `${f.candidate} → ${f.terminal} (terminal leg)`
+  }
+}
+
 export interface OptimiseResponse {
   fairest: ScoredCandidate
   quickest: ScoredCandidate
@@ -58,7 +76,7 @@ export interface OptimiseResponse {
   diff: string
   ranked: ScoredCandidate[]
   origins: { personId: string; name: string; latLng: LatLng }[]
-  failures: { candidate: string; personName: string }[]
+  failures: Failure[]
 }
 
 export interface Venue {

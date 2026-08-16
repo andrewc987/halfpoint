@@ -10,7 +10,7 @@ export const maxDuration = 60
 // known out-of-London terminal — i.e. the home field looks like a postcode
 // whose outward code is in the curated table. Londoners: nothing changes.
 function terminalForHome(p: Person) {
-  const raw = (p.homePostcode || p.homeLocation || '').toUpperCase().replace(/\s+/g, '')
+  const raw = (p.homeLocation || '').toUpperCase().replace(/\s+/g, '')
   if (!raw) return undefined
   if (/^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(raw)) return lookupTerminal(getPostcodeOutward(raw))
   if (/^[A-Z]{1,2}\d{1,2}[A-Z]?$/.test(raw)) return lookupTerminal(raw)
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
       id: p.id || `person-${i}`,
       name: p.name?.trim() || `Person ${i + 1}`,
       origin: p.fromLatLng,
-      homeLatLng: p.homeLatLng || undefined,
       terminal: terminalForHome(p),
     })
   }
