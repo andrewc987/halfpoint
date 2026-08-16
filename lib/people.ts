@@ -35,7 +35,6 @@ export function createPerson(name = ''): Person {
     fromLatLng: null,
     homeLocation: '',
     homeLatLng: null,
-    homePostcode: '',
   }
 }
 

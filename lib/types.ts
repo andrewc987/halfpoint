@@ -10,8 +10,6 @@ export interface Person {
   fromLatLng: LatLng | null
   homeLocation: string
   homeLatLng: LatLng | null
-  homePostcode: string
-  londonTerminal?: Terminal
 }
 
 export interface Terminal {

@@ -6,7 +6,6 @@ export interface EnginePerson {
   id: string
   name: string
   origin: LatLng
-  homeLatLng?: LatLng
   terminal?: Terminal
 }
 
